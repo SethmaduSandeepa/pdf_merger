@@ -11,7 +11,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="pdf-merger-app",
-    version="1.0.0",
+    version="1.0.1",
     author="PDF Merger",
     description="A user-friendly application for merging PDF letterheads with content",
     long_description=long_description,

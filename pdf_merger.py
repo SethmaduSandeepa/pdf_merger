@@ -34,11 +34,13 @@ class PDFMerger:
         output_path = self.output_dir / output_file
 
         if not letterhead_path.exists():
-            print(f"❌ Error: {letterhead_file} not found in {self.input_dir}")
+            print(f"❌ Error: Letterhead file '{letterhead_file}' not found in {self.input_dir}")
+            print(f"   Expected at: {letterhead_path}")
             return False
         
         if not content_path.exists():
-            print(f"❌ Error: {content_file} not found in {self.input_dir}")
+            print(f"❌ Error: Content file '{content_file}' not found in {self.input_dir}")
+            print(f"   Expected at: {content_path}")
             return False
 
         try:

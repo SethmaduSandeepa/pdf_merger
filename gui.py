@@ -6,6 +6,10 @@ from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 from pdf_merger import PDFMerger
 import threading
+import shutil
+import os
+import subprocess
+import sys
 
 
 class PDFMergerGUI:
@@ -125,6 +129,7 @@ class PDFMergerGUI:
             filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")]
         )
         if file:
+            self._copy_file_to_input(file)
             self.letterhead_file.set(Path(file).name)
             
     def select_content(self):
@@ -134,7 +139,22 @@ class PDFMergerGUI:
             filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")]
         )
         if file:
+            self._copy_file_to_input(file)
             self.content_file.set(Path(file).name)
+    
+    def _copy_file_to_input(self, file_path):
+        """Copy selected file to input directory if it's not already there."""
+        source = Path(file_path)
+        dest = self.input_dir / source.name
+        
+        # Only copy if source is not already in input directory
+        if source.resolve() != dest.resolve():
+            try:
+                shutil.copy2(source, dest)
+                self.log(f"📋 Copied file to input directory: {source.name}")
+            except Exception as e:
+                self.log(f"⚠️ Warning: Could not copy file - {str(e)}")
+                messagebox.showwarning("Copy Failed", f"Could not copy file:\n{str(e)}")
             
     def select_letterhead_from_folder(self):
         """Select letterhead from input folder."""
@@ -229,10 +249,6 @@ class PDFMergerGUI:
             
     def open_input_folder(self):
         """Open input folder in file explorer."""
-        import subprocess
-        import sys
-        import os
-        
         if sys.platform == 'win32':
             os.startfile(self.input_dir)
         elif sys.platform == 'darwin':
@@ -242,10 +258,6 @@ class PDFMergerGUI:
             
     def open_output_folder(self):
         """Open output folder in file explorer."""
-        import subprocess
-        import sys
-        import os
-        
         if sys.platform == 'win32':
             os.startfile(self.output_dir)
         elif sys.platform == 'darwin':

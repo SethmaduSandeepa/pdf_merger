@@ -10,7 +10,7 @@
 
 [Setup]
 AppName=PDF Merger App
-AppVersion=1.0.0
+AppVersion=1.0.1
 AppPublisher=PDF Merger
 AppPublisherURL=https://github.com
 DefaultDirName={autopf}\PDF Merger App

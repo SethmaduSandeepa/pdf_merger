@@ -1,17 +1,68 @@
 @echo off
-REM Build NSIS Installer
-REM This script helps you create a professional PDF Merger App installer
+REM Build professional Inno Setup installer for PDF Merger App
+REM
+REM This script requires:
+REM 1. Inno Setup 6 installed (https://jrsoftware.org/isdl.php)
+REM 2. Standalone executable already built (run build_exe.py first)
 
-cls
 echo.
-echo =====================================================
-echo  PDF MERGER APP - BUILD INSTALLER
-echo =====================================================
+echo ========================================
+echo PDF Merger - Professional Installer Build
+echo ========================================
 echo.
 
-REM Check if NSIS is installed
-echo Checking for NSIS installation...
+REM Check if Inno Setup is installed
+set INNO_SETUP=C:\Program Files (x86)\Inno Setup 6\ISCC.exe
+
+if not exist "%INNO_SETUP%" (
+    echo ERROR: Inno Setup 6 not found!
+    echo.
+    echo Please install Inno Setup 6 from:
+    echo https://jrsoftware.org/isdl.php
+    echo.
+    echo After installation, run this script again.
+    pause
+    exit /b 1
+)
+
+REM Check if standalone executable exists
+if not exist "dist\PDF Merger.exe" (
+    echo ERROR: Standalone executable not found!
+    echo.
+    echo Please run 'python build_exe.py' first to create the executable.
+    pause
+    exit /b 1
+)
+
+echo [1] Building Inno Setup installer...
 echo.
+
+"%INNO_SETUP%" setup.iss
+
+if errorlevel 1 (
+    echo.
+    echo ERROR: Inno Setup compilation failed!
+    pause
+    exit /b 1
+)
+
+echo.
+echo ========================================
+echo SUCCESS! Installer created:
+echo ========================================
+echo.
+echo File: TASMA_PDF_Merger_Setup.exe
+echo Location: %CD%\TASMA_PDF_Merger_Setup.exe
+echo.
+echo You can now distribute this .exe file to users!
+echo.
+echo Installation Instructions for Users:
+echo   1. Share TASMA_PDF_Merger_Setup.exe with users
+echo   2. Users double-click the .exe to install
+echo   3. No Python or additional software required!
+echo   4. Desktop shortcut created automatically
+echo.
+pause
 
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
     set NSIS_PATH=C:\Program Files (x86)\NSIS\makensis.exe

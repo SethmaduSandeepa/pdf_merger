@@ -1,4 +1,5 @@
-; Inno Setup Script for PDF Merger App
+; Inno Setup Script for TASMA PDF Merger App
+; Standalone Executable Version (No Python Required)
 ; 
 ; To build this installer:
 ; 1. Download Inno Setup from: https://jrsoftware.org/isdl.php
@@ -9,20 +10,24 @@
 ; "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
 
 [Setup]
-AppName=PDF Merger App
+AppName=TASMA PDF Merger
 AppVersion=1.0.1
-AppPublisher=PDF Merger
+AppPublisher=TASMA IT Department
 AppPublisherURL=https://github.com
-DefaultDirName={autopf}\PDF Merger App
-DefaultGroupName=PDF Merger App
+DefaultDirName={autopf}\TASMA PDF Merger
+DefaultGroupName=TASMA PDF Merger
 OutputDir=.
-OutputBaseFilename=PDF_Merger_App_Setup
+OutputBaseFilename=TASMA_PDF_Merger_Setup
 Compression=lzma2
 SolidCompression=yes
 PrivilegesRequired=admin
 WizardStyle=modern
-; SetupIconFile=setup_icon.ico  (commented out - icon file not required)
-UninstallDisplayIcon={app}\gui.py
+SetupIconFile=app.ico
+UninstallDisplayIcon={app}\app.ico
+DisableProgramGroupPage=no
+AllowUNCPath=no
+CloseApplications=yes
+CloseApplicationsFilter=*.exe
 
 ; Require Windows 7 or later
 MinVersion=6.1
@@ -30,79 +35,53 @@ MinVersion=6.1
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[CustomMessages]
+english.InstallingLabel=Installing PDF Merger...
+
 [Types]
-Name: "full"; Description: "Full installation"
-Name: "compact"; Description: "Compact installation"
-Name: "custom"; Description: "Custom installation"; Flags: iscustom
+Name: "full"; Description: "Full Installation"; Flags: iscustom
 
 [Components]
-Name: "app"; Description: "PDF Merger Application"; Types: full compact custom
-Name: "python"; Description: "Python Virtual Environment"; Types: full compact
-Name: "shortcuts"; Description: "Start Menu Shortcuts"; Types: full
-Name: "desktop"; Description: "Desktop Shortcut"; Types: full
+Name: "app"; Description: "TASMA PDF Merger (Standalone Executable)"; Types: full; Flags: fixed
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "python_path"; Description: "Add Python to PATH"; GroupDescription: "Python Configuration"
-Name: "associate_pdf"; Description: "Associate PDF with PDF Merger"; GroupDescription: "File Associations"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Components: app
 
 [Files]
-; Application files
-Source: "gui.py"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "app.py"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "pdf_merger.py"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "main.py"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "requirements.txt"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "setup.py"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "build_exe.py"; DestDir: "{app}"; Components: app; Flags: ignoreversion
+; Standalone Executable - the main application
+Source: "dist\PDF Merger.exe"; DestDir: "{app}"; Components: app; Flags: ignoreversion; DestName: "PDF Merger.exe"
 
-; Documentation
+; Application Icon
+Source: "app.ico"; DestDir: "{app}"; Components: app; Flags: ignoreversion
+
+; Documentation (optional but recommended)
 Source: "README.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
+Source: "PROFESSIONAL_INSTALLATION.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
 Source: "QUICKSTART.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "SETUP_GUIDE.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "DISTRIBUTION_GUIDE.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "DISTRIBUTION_CHECKLIST.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
 Source: "LICENSE.txt"; DestDir: "{app}"; Components: app; Flags: ignoreversion
 
-; Setup scripts
-Source: "install.bat"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "install.ps1"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-Source: "install.sh"; DestDir: "{app}"; Components: app; Flags: ignoreversion
-
 [Dirs]
-Name: "{localappdata}\PDF Merger App\input"
-Name: "{localappdata}\PDF Merger App\output"
-Name: "{app}\.venv"; Components: python
+Name: "{localappdata}\TASMA PDF Merger\input"
+Name: "{localappdata}\TASMA PDF Merger\output"
 
 [Icons]
-Name: "{group}\PDF Merger"; Filename: "{app}\gui.py"; Components: shortcuts; Comment: "PDF Merger Application"
-Name: "{group}\Uninstall PDF Merger"; Filename: "{uninstallexe}"; Components: shortcuts
-Name: "{autodesktop}\PDF Merger"; Filename: "{app}\gui.py"; Tasks: desktopicon; Comment: "PDF Merger Application"
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\PDF Merger"; Filename: "{app}\gui.py"; Tasks: quicklaunchicon
+Name: "{group}\TASMA PDF Merger"; Filename: "{app}\PDF Merger.exe"; IconFileName: "{app}\app.ico"; Comment: "TASMA PDF Merger - Professional PDF Merging Tool"
+Name: "{autodesktop}\TASMA PDF Merger"; Filename: "{app}\PDF Merger.exe"; IconFileName: "{app}\app.ico"; Tasks: desktopicon; Comment: "TASMA PDF Merger - Professional PDF Merging Tool"
 
 [Run]
-Filename: "{app}\install.bat"; Parameters: "auto"; Flags: runhidden; StatusMsg: "Installing Python dependencies..."; Description: "Install Python dependencies"
-Filename: "{app}\gui.py"; Flags: shellexec skipifsilent; StatusMsg: "Launching PDF Merger..."; Description: "Launch application"
+Filename: "{app}\PDF Merger.exe"; Description: "Launch TASMA PDF Merger"; Flags: nowait postinstall skipifsilent; Components: app
 
 [UninstallDelete]
-Type: dirifempty; Name: "{localappdata}\PDF Merger App\input"
-Type: dirifempty; Name: "{localappdata}\PDF Merger App\output"
-Type: dirifempty; Name: "{localappdata}\PDF Merger App"
-Type: dirifempty; Name: "{app}\input"
-Type: dirifempty; Name: "{app}\output"
-Type: dirifempty; Name: "{app}\.venv"
-Type: dirifempty; Name: "{app}"
+Type: dirifempty; Name: "{localappdata}\TASMA PDF Merger\input"
+Type: dirifempty; Name: "{localappdata}\TASMA PDF Merger\output"
+Type: dirifempty; Name: "{localappdata}\TASMA PDF Merger"
 
 [Code]
 procedure CurStepChanged(CurStep: TSetupStep);
-var
-  ResultCode: Integer;
 begin
   if CurStep = ssPostInstall then
   begin
-    { Log installation completion }
-    Log('PDF Merger App installation completed successfully.');
+    Log('TASMA PDF Merger installation completed successfully.');
   end;
 end;
 
@@ -110,7 +89,6 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
   begin
-    { Log uninstall completion }
-    Log('PDF Merger App has been uninstalled.');
+    Log('TASMA PDF Merger has been uninstalled.');
   end;
 end;

@@ -26,10 +26,7 @@ class PDFPreviewWindow:
         
         # State variables
         self.current_page = 0
-        self.page_order = []  # Track page order for reordering
-        self.pdf_offset = (0, 0)  # Track PDF position offset for dragging
         self.dragged_image = None
-        self.dragged_pdf = None  # Track if dragging PDF
         self.image_position = None
         self.image_data = None  # Store PIL image
         self.image_size = None  # Store current displayed size (width, height)
@@ -67,24 +64,14 @@ class PDFPreviewWindow:
         )
         self.page_spinbox.pack(side=tk.LEFT, padx=5)
         
-        self.total_pages_label = ttk.Label(control_frame, text="/ 1")
-        self.total_pages_label.pack(side=tk.LEFT)
-        
-        ttk.Separator(control_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
-        
-        # Page reordering buttons
-        ttk.Button(control_frame, text="⬆ Move Up", 
-                  command=self._move_page_up).pack(side=tk.LEFT, padx=5)
-        ttk.Button(control_frame, text="⬇ Move Down", 
-                  command=self._move_page_down).pack(side=tk.LEFT, padx=5)
+        ttk.Label(control_frame, text="/ 1").pack(side=tk.LEFT)
         
         # Image selection
-        ttk.Separator(control_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
         ttk.Button(control_frame, text="Select Image", 
-                  command=self._select_image).pack(side=tk.LEFT, padx=5)
+                  command=self._select_image).pack(side=tk.LEFT, padx=20)
         
         self.image_label = ttk.Label(control_frame, text="No image selected", foreground="gray")
-        self.image_label.pack(side=tk.LEFT, padx=5)
+        self.image_label.pack(side=tk.LEFT, padx=10)
         
         ttk.Button(control_frame, text="Clear Image", 
                   command=self._clear_image).pack(side=tk.LEFT, padx=5)
@@ -99,9 +86,9 @@ class PDFPreviewWindow:
         ttk.Button(save_frame, text="💾 Save PDF", 
                   command=self._save_with_image).pack(side=tk.LEFT, padx=5)
         
-        # Help text for dragging
+        # Help text for resizing
         ttk.Separator(control_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
-        ttk.Label(control_frame, text="💡 Drag image to position | PDF is locked", foreground="blue").pack(side=tk.LEFT, padx=5)
+        ttk.Label(control_frame, text="💡 Drag corners to resize | Drag center to move", foreground="blue").pack(side=tk.LEFT, padx=5)
         
         # Main preview area with scrollbars
         canvas_frame = ttk.Frame(self.window)
@@ -152,10 +139,8 @@ class PDFPreviewWindow:
         try:
             self.pdf_doc = fitz.open(str(self.pdf_path))
             total_pages = len(self.pdf_doc)
-            self.page_order = list(range(total_pages))  # Initialize page order [0, 1, 2, ...]
             self.page_spinbox.config(to=total_pages)
             self.page_spinbox.pack_configure()
-            self.total_pages_label.config(text=f"/ {total_pages}")
             self.status_label.config(text=f"Loaded PDF: {self.pdf_path.name} ({total_pages} pages)")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load PDF: {str(e)}", parent=self.window)
@@ -167,47 +152,29 @@ class PDFPreviewWindow:
             return
         
         try:
-            # Get the actual page number from the reordered list
-            actual_page_num = self.page_order[self.current_page] if self.current_page < len(self.page_order) else 0
-            
             # Render page if not cached
-            if actual_page_num not in self.page_images:
-                page = self.pdf_doc[actual_page_num]
+            if self.current_page not in self.page_images:
+                page = self.pdf_doc[self.current_page]
                 # Render at higher zoom for better quality
                 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
                 img_data = pix.tobytes("ppm")
                 img = Image.open(BytesIO(img_data))
-                self.page_images[actual_page_num] = img
+                self.page_images[self.current_page] = img
             
-            img = self.page_images[actual_page_num]
+            img = self.page_images[self.current_page]
             
             # Convert to PhotoImage
             photo = ImageTk.PhotoImage(img)
             
             # Update canvas
             self.canvas.delete("all")
-            
-            # Draw PDF with offset
-            pdf_x, pdf_y = self.pdf_offset
-            self.canvas_img_id = self.canvas.create_image(pdf_x, pdf_y, image=photo, anchor=tk.NW)
+            self.canvas_img_id = self.canvas.create_image(0, 0, image=photo, anchor=tk.NW)
             self.canvas.image = photo  # Keep a reference
             
             # Store image dimensions for later
             self.canvas_width = img.width
             self.canvas_height = img.height
-            
-            # Create a large virtual canvas to allow free movement in all directions
-            # The scroll region should allow dragging the PDF content anywhere within reasonable bounds
-            max_offset_x = img.width // 2  # Allow dragging up to half the image width in any direction
-            max_offset_y = img.height // 2  # Allow dragging up to half the image height in any direction
-            
-            scroll_left = -max_offset_x
-            scroll_top = -max_offset_y
-            scroll_right = img.width + max_offset_x
-            scroll_bottom = img.height + max_offset_y
-            
-            self.canvas.config(width=min(img.width, 800), height=min(img.height, 600), 
-                             scrollregion=(scroll_left, scroll_top, scroll_right, scroll_bottom))
+            self.canvas.config(width=img.width, height=img.height, scrollregion=(0, 0, img.width, img.height))
             
             # Redraw image if placed
             if self.image_data and self.image_position:
@@ -220,43 +187,11 @@ class PDFPreviewWindow:
         """Handle page change."""
         try:
             page_num = int(self.page_var.get()) - 1
-            if 0 <= page_num < len(self.page_order):
+            if 0 <= page_num < len(self.pdf_doc):
                 self.current_page = page_num
                 self._display_page()
         except ValueError:
             pass
-    
-    def _move_page_up(self):
-        """Move current page up (earlier) in the document."""
-        if self.current_page <= 0:
-            messagebox.showwarning("Cannot Move", "This page is already at the top", parent=self.window)
-            return
-        
-        # Swap current page with previous page in the order list
-        self.page_order[self.current_page], self.page_order[self.current_page - 1] = \
-            self.page_order[self.current_page - 1], self.page_order[self.current_page]
-        
-        # Move to the previous position and update display
-        self.current_page -= 1
-        self.page_var.set(str(self.current_page + 1))
-        self._display_page()
-        self.status_label.config(text=f"Page moved up", foreground="green")
-    
-    def _move_page_down(self):
-        """Move current page down (later) in the document."""
-        if self.current_page >= len(self.page_order) - 1:
-            messagebox.showwarning("Cannot Move", "This page is already at the bottom", parent=self.window)
-            return
-        
-        # Swap current page with next page in the order list
-        self.page_order[self.current_page], self.page_order[self.current_page + 1] = \
-            self.page_order[self.current_page + 1], self.page_order[self.current_page]
-        
-        # Move to the next position and update display
-        self.current_page += 1
-        self.page_var.set(str(self.current_page + 1))
-        self._display_page()
-        self.status_label.config(text=f"Page moved down", foreground="green")
     
     def _select_image(self):
         """Select image to place on PDF."""
@@ -394,49 +329,52 @@ class PDFPreviewWindow:
     
     def _on_canvas_click(self, event):
         """Handle canvas click to start dragging or resizing."""
+        if not self.image_data or not self.image_position:
+            return
+        
         # Convert event coordinates to canvas coordinates (accounting for scroll)
         canvas_x = self.canvas.canvasx(event.x)
         canvas_y = self.canvas.canvasy(event.y)
         
-        # Check if clicking on image first (if image is placed)
-        if self.image_data and self.image_position:
-            x, y = self.image_position
-            w, h = self.image_size
-            handle_size = self.resize_handle_size
-            
-            # Check if clicking on a resize handle
-            handles = {
-                'nw': (x, y),
-                'ne': (x + w, y),
-                'sw': (x, y + h),
-                'se': (x + w, y + h),
-                'n': (x + w//2, y),
-                's': (x + w//2, y + h),
-                'w': (x, y + h//2),
-                'e': (x + w, y + h//2),
-            }
-            
-            for handle_name, (hx, hy) in handles.items():
-                if abs(canvas_x - hx) <= handle_size//2 and abs(canvas_y - hy) <= handle_size//2:
-                    self.resizing = True
-                    self.resize_handle = handle_name
-                    self.drag_start = (canvas_x, canvas_y)
-                    self.original_size = (w, h)
-                    self.original_pos = (x, y)
-                    return
-            
-            # Check if clicking on the image center for moving
-            if x <= canvas_x <= x + w and y <= canvas_y <= y + h:
-                self.dragged_image = (canvas_x, canvas_y)
+        x, y = self.image_position
+        w, h = self.image_size
+        handle_size = self.resize_handle_size
+        
+        # Check if clicking on a resize handle
+        handles = {
+            'nw': (x, y),
+            'ne': (x + w, y),
+            'sw': (x, y + h),
+            'se': (x + w, y + h),
+            'n': (x + w//2, y),
+            's': (x + w//2, y + h),
+            'w': (x, y + h//2),
+            'e': (x + w, y + h//2),
+        }
+        
+        for handle_name, (hx, hy) in handles.items():
+            if abs(canvas_x - hx) <= handle_size//2 and abs(canvas_y - hy) <= handle_size//2:
+                self.resizing = True
+                self.resize_handle = handle_name
+                self.drag_start = (canvas_x, canvas_y)
+                self.original_size = (w, h)
+                self.original_pos = (x, y)
                 return
+        
+        # Check if clicking on the image center for moving
+        if x <= canvas_x <= x + w and y <= canvas_y <= y + h:
+            self.dragged_image = (canvas_x, canvas_y)
     
     def _on_canvas_drag(self, event):
-        """Handle dragging image, resizing, or dragging PDF."""
+        """Handle dragging image or resizing."""
+        if not self.image_data:
+            return
+        
         # Convert event coordinates to canvas coordinates (accounting for scroll)
         canvas_x = self.canvas.canvasx(event.x)
         canvas_y = self.canvas.canvasy(event.y)
         
-        # Handle resizing image
+        # Handle resizing
         if self.resizing and self.resize_handle:
             x, y = self.image_position
             w, h = self.image_size
@@ -478,7 +416,7 @@ class PDFPreviewWindow:
             
             self.status_label.config(text=f"Size: {new_w}x{new_h} | Position: ({x_offset}, {y_offset})", foreground="blue")
         
-        # Handle moving image
+        # Handle moving
         elif self.dragged_image:
             dx = canvas_x - self.dragged_image[0]
             dy = canvas_y - self.dragged_image[1]
@@ -495,12 +433,10 @@ class PDFPreviewWindow:
             self._redraw_placed_image_only()
             
             self.status_label.config(text=f"Position: ({new_x}, {new_y})", foreground="blue")
-
     
     def _on_canvas_release(self, event):
         """Handle release after dragging or resizing."""
         self.dragged_image = None
-        self.dragged_pdf = None
         self.resizing = False
         self.resize_handle = None
     
@@ -566,59 +502,36 @@ class PDFPreviewWindow:
             )
             
             if not output_path:
+                # User cancelled the save dialog
                 return
             
             self.status_label.config(text="Saving PDF with image...", foreground="blue")
             self.window.update()
             
-            # Create output PDF by copying all pages in reordered sequence
-            output_doc = fitz.open()
+            # Convert pixel coordinates to PDF points
+            # The canvas is rendered at 2x zoom, so divide by 2 to get original scale
+            zoom_factor = 2  # Canvas is rendered at 2x zoom
+            x_pdf = int(self.image_position[0] / zoom_factor)
+            y_pdf = int(self.image_position[1] / zoom_factor)
+            width_pdf = int(self.image_size[0] / zoom_factor)
+            height_pdf = int(self.image_size[1] / zoom_factor)
             
-            for page_index in self.page_order:
-                output_doc.insert_pdf(self.pdf_doc, from_page=page_index, to_page=page_index)
+            # Use merger to add image with scaled coordinates
+            success = self.merger.add_image_to_pdf(
+                str(self.pdf_path), 
+                self.image_path, 
+                output_path,  # Pass full path
+                x_pdf, y_pdf,
+                width_pdf,
+                height_pdf
+            )
             
-            # Add image to the current page (which is now at position self.current_page in output_doc)
-            if self.image_data and self.image_position and self.image_size:
-                target_page = output_doc[self.current_page]
+            if success:
+                messagebox.showinfo("✅ Success", f"PDF saved with image:\n{output_path}", parent=self.window)
+                self.status_label.config(text="Saved successfully!", foreground="green")
+            else:
+                messagebox.showerror("Error", "Failed to save PDF", parent=self.window)
                 
-                # The canvas is rendered at 2x zoom, so we need to convert coordinates
-                # Canvas coordinates to PDF coordinates
-                zoom_factor = 2
-                x_pdf = self.image_position[0] / zoom_factor
-                y_pdf = self.image_position[1] / zoom_factor
-                width_pdf = self.image_size[0] / zoom_factor
-                height_pdf = self.image_size[1] / zoom_factor
-                
-                # Use the exact same image that was shown in the preview
-                from PIL import Image as PILImage
-                from io import BytesIO
-                
-                # Resize the preview image to the exact displayed size
-                display_img = self.image_data.copy()
-                display_img = display_img.resize((int(self.image_size[0]), int(self.image_size[1])), PILImage.Resampling.LANCZOS)
-                
-                # Save to bytes
-                img_bytes = BytesIO()
-                display_img.save(img_bytes, format='PNG')
-                img_bytes.seek(0)
-                
-                # Insert image on top of the page at the exact position and size from preview
-                target_page.insert_image(
-                    fitz.Rect(x_pdf, y_pdf, x_pdf + width_pdf, y_pdf + height_pdf),
-                    stream=img_bytes.getvalue()
-                )
-            
-            # Save the PDF
-            output_doc.save(str(output_path))
-            output_doc.close()
-            
-            messagebox.showinfo("✅ Success", f"PDF saved with image:\n{output_path}", parent=self.window)
-            self.status_label.config(text="Saved successfully!", foreground="green")            
-            # Auto-close the preview window after successful save
-            self.window.after(500, self.window.destroy)            
-            # Auto-close the preview window after successful save
-            self.window.after(500, self.window.destroy)
-            
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save: {str(e)}", parent=self.window)
     
@@ -637,21 +550,14 @@ class PDFPreviewWindow:
             )
             
             if not output_path:
+                # User cancelled the save dialog
                 return
             
             self.status_label.config(text="Saving PDF...", foreground="blue")
             self.window.update()
             
-            # Create output PDF by copying all pages in reordered sequence
-            output_doc = fitz.open()
-            
-            for page_index in self.page_order:
-                output_doc.insert_pdf(self.pdf_doc, from_page=page_index, to_page=page_index)
-            
-            # Save the reordered PDF
-            output_doc.save(str(output_path))
-            output_doc.close()
-            
+            # Copy the merged PDF to the chosen location
+            shutil.copy2(self.pdf_path, output_path)
             messagebox.showinfo("✅ Success", f"PDF saved:\n{output_path}", parent=self.window)
             self.status_label.config(text="Saved successfully!", foreground="green")
             
@@ -906,26 +812,8 @@ class PDFMergerGUI:
         """Show preview window for the merged PDF."""
         try:
             preview = PDFPreviewWindow(self.root, pdf_path, self.merger, self.input_dir, self.output_dir)
-            # Wait for preview window to close, then reset the main window
-            self.root.wait_window(preview.window)
-            self._reset_form()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open preview: {str(e)}")
-    
-    def _reset_form(self):
-        """Reset the form after successful merge and save."""
-        # Clear the log
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.delete(1.0, tk.END)
-        self.log_text.config(state=tk.DISABLED)
-        
-        # Reset selections
-        self.letterhead_file.set("")
-        self.content_file.set("")
-        self.output_filename.set("print_ready_merged.pdf")
-        
-        # Add ready message
-        self.log("✅ Ready for next merge!")
     
     def open_input_folder(self):
         """Open input folder in file explorer."""

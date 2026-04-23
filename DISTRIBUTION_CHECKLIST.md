@@ -1,13 +1,49 @@
-# PDF Merger App - Distribution Checklist
+# Professional Distribution Checklist - PDF Merger v1.0.1
 
-## Pre-Distribution Checklist
+## ✅ BUILD PHASE - Standalone Installer
 
-Before sharing your PDF Merger App with others, verify you have:
+### Step 1: Create Executable
+- [ ] Run: `python build_exe.py`
+- [ ] Verify: `dist\PDF Merger.exe` created (~150-200 MB)
+- [ ] Test: Double-click exe to verify it launches
 
-### Core Application Files
-- ✅ `gui.py` - GUI application (main entry point)
-- ✅ `app.py` - Command-line menu interface
-- ✅ `pdf_merger.py` - Core PDF merging module
+### Step 2: Prepare Installer
+- [ ] Install Inno Setup 6 if not present: https://jrsoftware.org/isdl.php
+- [ ] Run: `build_installer.bat` 
+- [ ] Verify: `TASMA_PDF_Merger_Setup.exe` created (~90-120 MB)
+
+## ✅ TESTING PHASE
+
+### Installer Testing
+- [ ] Run `TASMA_PDF_Merger_Setup.exe`
+- [ ] Go through installation wizard
+- [ ] Choose default location or custom path
+- [ ] Check "Create Desktop Icon" option
+- [ ] Complete installation successfully
+
+### Application Testing (Post-Install)
+- [ ] Launch from desktop shortcut
+- [ ] Launch from Start Menu entry
+- [ ] Test PDF merge functionality
+- [ ] Test image positioning and resize
+- [ ] Test save with image overlay
+- [ ] Test save without image
+- [ ] Verify output folder created correctly
+- [ ] Test preview auto-closes after save
+
+### Uninstall Testing
+- [ ] Run uninstall from Control Panel
+- [ ] Verify program removed completely
+- [ ] Verify shortcuts removed
+- [ ] Verify AppData folder cleaned
+
+## ✅ PRE-DISTRIBUTION CHECKLIST
+
+### Documentation Ready
+- [ ] `README.md` - Overview
+- [ ] `PROFESSIONAL_INSTALLATION.md` - Detailed installation guide
+- [ ] `INSTALLER_QUICK_START.md` - Build instructions
+- [ ] `LICENSE.txt` - License agreement
 - ✅ `main.py` - Legacy entry point
 - ✅ `requirements.txt` - Python dependencies list
 - ✅ `setup.py` - Python package setup file
